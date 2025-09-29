@@ -1,0 +1,16 @@
+# Terraform generated files
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+override.tf
+override_*.tf
+*-override.tf
+*-override_*.tf
+
+# Local configuration files
+*.tfvars
+*.tfvars.json
+secrets.tfvars
