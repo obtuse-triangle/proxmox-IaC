@@ -16,7 +16,7 @@ resource "null_resource" "run_ansible" {
 
   provisioner "local-exec" {
     # Terraform 폴더에서 ansible 폴더의 플레이북을 실행
-    command = "cd ansible && ansible-playbook -i inventory.yml playbook.yml"
+    command = "cd ../ansible && ansible-playbook -i inventory.yml playbook.yml"
     
     # 플레이북 실행 중에 문제가 생기면 Terraform 실행도 실패하도록 설정
     on_failure = fail
