@@ -12,15 +12,15 @@ k3s_cluster:
     server:
       hosts:
         10.3.20.1:
-          vmid: 148
+          vmid: 147
           node: sh
     agent:
       hosts:
         10.3.21.1:
-          vmid: 147
+          vmid: 149
           node: sh
         10.3.21.2:
-          vmid: 149
+          vmid: 148
           node: sh
 
   # Required Vars

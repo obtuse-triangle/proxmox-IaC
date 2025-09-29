@@ -33,6 +33,50 @@
         loop_var: "item"
         label: "{{ item }}"
 
+    - name: "Ensure apparmor profile is unconfined for LXC nodes"
+      ansible.builtin.lineinfile:
+        path: "/etc/pve/lxc/{{ hostvars[item].vmid }}.conf"
+        line: "lxc.apparmor.profile: unconfined"
+        state: present
+      delegate_to: "{{ hostvars[item].node }}"
+      loop: "{{ query('inventory_hostnames', 'k3s_cluster') }}"
+      loop_control:
+        loop_var: "item"
+        label: "{{ item }}"
+    
+    - name: "Ensure cgroup devices allow all for LXC nodes"
+      ansible.builtin.lineinfile:
+        path: "/etc/pve/lxc/{{ hostvars[item].vmid }}.conf"
+        line: "lxc.cgroup.devices.allow: a"
+        state: present
+      delegate_to: "{{ hostvars[item].node }}"
+      loop: "{{ query('inventory_hostnames', 'k3s_cluster') }}"
+      loop_control:
+        loop_var: "item"
+        label: "{{ item }}"
+    
+    - name: "Ensure capabilities drop is empty for LXC nodes"
+      ansible.builtin.lineinfile:
+        path: "/etc/pve/lxc/{{ hostvars[item].vmid }}.conf"
+        line: "lxc.cap.drop:"
+        state: present
+      delegate_to: "{{ hostvars[item].node }}"
+      loop: "{{ query('inventory_hostnames', 'k3s_cluster') }}"
+      loop_control:
+        loop_var: "item"
+        label: "{{ item }}"
+    
+    - name: "Ensure mount auto for proc and sys for LXC nodes"
+      ansible.builtin.lineinfile:
+        path: "/etc/pve/lxc/{{ hostvars[item].vmid }}.conf"
+        line: "lxc.mount.auto: \"proc:rw sys:rw\""
+        state: present
+      delegate_to: "{{ hostvars[item].node }}"
+      loop: "{{ query('inventory_hostnames', 'k3s_cluster') }}"
+      loop_control:
+        loop_var: "item"
+        label: "{{ item }}"
+    
     - name: "Restart LXC containers to apply changes"
       ansible.builtin.command: "pct reboot {{ item.vmid }}"
       delegate_to: "{{ item.node }}"

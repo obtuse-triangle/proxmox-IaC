@@ -49,13 +49,13 @@ resource "proxmox_lxc" "k3s_masters" {
     storage = "local"
     size    = "8G"
   }
+  nameserver = "8.8.8.8"
   network {
     name   = "eth0"
     bridge = "vmbr1"
     ip     = "${each.value}/17"
     gw     = "10.3.0.1"
   }
-  
   features {
     nesting = true
   }
@@ -80,7 +80,7 @@ resource "proxmox_lxc" "k3s_workers" {
     storage = "local"
     size    = "8G"
   }
-
+  nameserver = "8.8.8.8"
   network {
     name   = "eth0"
     bridge = "vmbr1"
