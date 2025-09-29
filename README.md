@@ -6,6 +6,17 @@ Terraform + Ansible로 관리되는 Proxmox 기반 Kubernetes 클러스터 인�
 
 ### 방법 1: 자동화 스크립트 사용 (권장)
 
+`terraform/terraform.tfvars` 파일 생성
+
+```
+proxmox_api_user = "root@pam"
+proxmox_api_password = "<password>"
+
+ssh_public_key = "ssh-rsa AAAAB3N..."
+lxc_root_password = "<password>"
+k3s_token = "<random string, openssl rand -base64 64 >"
+```
+
 ```bash
 # 1. 인프라 배포 (Proxmox LXC)
 ./deploy-infrastructure.sh
