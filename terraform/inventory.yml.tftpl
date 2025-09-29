@@ -24,6 +24,26 @@ k3s_cluster:
           node: ${worker.target_node}
 %{ endfor ~}
 
+# K3s Ansible collection에서 필요한 그룹들
+k3s_server:
+  hosts:
+%{ for name, master in masters ~}
+    ${split("/", master.network.0.ip)[0]}:
+%{ endfor ~}
+
+k3s_agent:
+  hosts:
+%{ for name, worker in workers ~}
+    ${split("/", worker.network.0.ip)[0]}:
+%{ endfor ~}
+
+k3s_master:
+  hosts:
+%{ for name, master in masters ~}
+    ${split("/", master.network.0.ip)[0]}:
+%{ endfor ~}
+
+all:
   # Required Vars
   vars:
     ansible_port: 22

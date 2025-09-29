@@ -90,3 +90,232 @@
 # ---
 # PLAY 2: k3s 클러스터 설치 (기존 플레이북과 동일)
 - import_playbook: k3s.orchestration.site
+
+# ---
+# PLAY 3: MetalLB 및 Dashboard 설치
+- name: "Install MetalLB and Kubernetes Dashboard"
+  hosts: k3s_master
+  gather_facts: false
+  vars:
+    ansible_ssh_extra_args: '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
+    ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
+  
+  tasks:
+    # Python kubernetes 라이브러리 설치 (시스템 패키지 사용)
+    - name: "Install Python kubernetes library"
+      ansible.builtin.package:
+        name:
+          - python3-kubernetes
+          - python3-yaml
+        state: present
+    
+    # Dashboard manifest 직접 설치
+    - name: "Install Kubernetes Dashboard"
+      kubernetes.core.k8s:
+        state: present
+        src: https://raw.githubusercontent.com/kubernetes/dashboard/v2.7.0/aio/deploy/recommended.yaml
+      environment:
+        KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+
+    # MetalLB 설치
+    - name: "Install MetalLB"
+      kubernetes.core.k8s:
+        state: present
+        src: https://raw.githubusercontent.com/metallb/metallb/v0.14.8/config/manifests/metallb-native.yaml
+      environment:
+        KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+    
+    - name: "Wait for MetalLB controller to be ready"
+      kubernetes.core.k8s_info:
+        api_version: apps/v1
+        kind: Deployment
+        name: controller
+        namespace: metallb-system
+        wait: true
+        wait_condition:
+          type: Available
+          status: "True"
+        wait_timeout: 300
+      environment:
+        KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+    
+    - name: "Create MetalLB IPAddressPool"
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: metallb.io/v1beta1
+          kind: IPAddressPool
+          metadata:
+            name: first-pool
+            namespace: metallb-system
+          spec:
+            addresses:
+            - 10.3.50.100-10.3.50.110
+      environment:
+        KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+    
+    - name: "Create MetalLB L2Advertisement"
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: metallb.io/v1beta1
+          kind: L2Advertisement
+          metadata:
+            name: my-l2-advertise
+            namespace: metallb-system
+          spec:
+            ipAddressPools:
+            - first-pool
+      environment:
+        KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+
+# ---
+# PLAY 4: Dashboard 설정 (Admin 계정, ServersTransport, IngressRoute)
+- name: "Configure Kubernetes Dashboard"
+  hosts: k3s_master
+  gather_facts: false
+  vars:
+    ansible_ssh_extra_args: '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
+    ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
+  
+  tasks:
+    - name: "Wait for Dashboard to be ready"
+      kubernetes.core.k8s_info:
+        api_version: apps/v1
+        kind: Deployment
+        name: kubernetes-dashboard-kong
+        namespace: kubernetes-dashboard
+        wait: true
+        wait_condition:
+          type: Available
+          status: "True"
+        wait_timeout: 300
+      environment:
+        KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+    
+    - name: "Create Dashboard admin ServiceAccount"
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: ServiceAccount
+          metadata:
+            name: admin-user
+            namespace: kubernetes-dashboard
+      environment:
+        KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+    
+    - name: "Create Dashboard admin ClusterRoleBinding"
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: rbac.authorization.k8s.io/v1
+          kind: ClusterRoleBinding
+          metadata:
+            name: admin-user
+          roleRef:
+            apiGroup: rbac.authorization.k8s.io
+            kind: ClusterRole
+            name: cluster-admin
+          subjects:
+          - kind: ServiceAccount
+            name: admin-user
+            namespace: kubernetes-dashboard
+      environment:
+        KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+    
+    - name: "Create Dashboard admin token Secret"
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Secret
+          metadata:
+            name: admin-user-token
+            namespace: kubernetes-dashboard
+            annotations:
+              kubernetes.io/service-account.name: admin-user
+          type: kubernetes.io/service-account-token
+      environment:
+        KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+    
+    - name: "Create Dashboard ServersTransport"
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: traefik.containo.us/v1alpha1
+          kind: ServersTransport
+          metadata:
+            name: insecure-skip-verify
+            namespace: kubernetes-dashboard
+          spec:
+            insecureSkipVerify: true
+      environment:
+        KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+    
+    - name: "Create Dashboard IngressRoute"
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: traefik.containo.us/v1alpha1
+          kind: IngressRoute
+          metadata:
+            name: kubernetes-dashboard
+            namespace: kubernetes-dashboard
+          spec:
+            entryPoints:
+            - websecure
+            routes:
+            - match: Host(`dashboard.local.io`)
+              kind: Rule
+              services:
+              - name: kubernetes-dashboard
+                port: 443
+                scheme: https
+                serversTransport: insecure-skip-verify
+      environment:
+        KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+    
+    - name: "Get Dashboard admin token"
+      kubernetes.core.k8s_info:
+        api_version: v1
+        kind: Secret
+        name: admin-user-token
+        namespace: kubernetes-dashboard
+      register: admin_token_secret
+      environment:
+        KUBECONFIG: /etc/rancher/k3s/k3s.yaml
+    
+    - name: "Display Dashboard admin token"
+      ansible.builtin.debug:
+        msg: "Dashboard Admin Token: {{ admin_token_secret.resources[0].data.token | b64decode }}"
+      when: admin_token_secret.resources | length > 0
+
+# ---
+# PLAY 5: kubeconfig 로컬 설정 안내
+- name: "Setup local kubeconfig"
+  hosts: k3s_master
+  gather_facts: false
+  vars:
+    ansible_ssh_extra_args: '-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null'
+    ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
+  
+  tasks:
+    - name: "Display kubeconfig setup instructions"
+      ansible.builtin.debug:
+        msg: |
+          🔧 Local kubeconfig setup instructions:
+          
+          1. Copy kubeconfig from master node:
+             scp root@{{ ansible_host }}:/etc/rancher/k3s/k3s.yaml ~/.kube/config
+          
+          2. Update server IP in kubeconfig:
+             sed -i '' 's/127.0.0.1/{{ ansible_host }}/g' ~/.kube/config
+          
+          3. Test connection:
+             kubectl get nodes
+          
+          🌐 Dashboard Access:
+          - Add to /etc/hosts: 10.3.50.100 dashboard.local.io
+          - Browser: https://dashboard.local.io
+          - Or curl: curl -H "Host: dashboard.local.io" https://10.3.50.100 -k

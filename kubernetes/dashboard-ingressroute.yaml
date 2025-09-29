@@ -1,0 +1,22 @@
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: kubernetes-dashboard
+  namespace: kubernetes-dashboard
+  labels:
+    app.kubernetes.io/instance: kubernetes-dashboard
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: kubernetes-dashboard
+    app.kubernetes.io/version: "7.5.0"
+    helm.sh/chart: kubernetes-dashboard-7.5.0
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`dashboard.local.io`)
+      kind: Rule
+      services:
+        - name: kubernetes-dashboard-kong-proxy
+          port: 443
+          scheme: https
+          serversTransport: insecure-skip-verify

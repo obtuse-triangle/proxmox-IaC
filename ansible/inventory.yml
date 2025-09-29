@@ -12,17 +12,32 @@ k3s_cluster:
     server:
       hosts:
         10.3.20.1:
-          vmid: 147
+          vmid: 150
           node: sh
     agent:
       hosts:
         10.3.21.1:
-          vmid: 149
+          vmid: 152
           node: sh
         10.3.21.2:
-          vmid: 148
+          vmid: 151
           node: sh
 
+# K3s Ansible collection에서 필요한 그룹들
+k3s_server:
+  hosts:
+    10.3.20.1:
+
+k3s_agent:
+  hosts:
+    10.3.21.1:
+    10.3.21.2:
+
+k3s_master:
+  hosts:
+    10.3.20.1:
+
+all:
   # Required Vars
   vars:
     ansible_port: 22

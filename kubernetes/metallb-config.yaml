@@ -1,0 +1,19 @@
+# metallb-config.yaml
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  name: first-pool
+  namespace: metallb-system
+spec:
+  # MetalLB가 서비스에 할당할 IP 주소 범위를 지정합니다.
+  addresses:
+  - 10.3.50.100-10.3.50.110
+---
+apiVersion: metallb.io/v1beta1
+kind: L2Advertisement
+metadata:
+  name: my-l2-advertise
+  namespace: metallb-system
+spec:
+  ipAddressPools:
+  - first-pool
