@@ -6,7 +6,7 @@ variable "proxmox_api_token_id" {
 variable "proxmox_api_token_secretSh" {
   type        = string
   description = "Proxmox API Token Secret"
-  sensitive   = true # 이 값은 터미널에 노출되지 않도록 설정
+  sensitive   = true
 }
 
 variable "proxmox_api_user"{
@@ -16,7 +16,7 @@ variable "proxmox_api_user"{
 variable "proxmox_api_password"{
   type        = string
   description = "Proxmox API Password"
-  sensitive   = true # 이 값은 터미널에 노출되지 않도록 설정
+  sensitive   = true
 }
 
 variable "ssh_public_key" {
@@ -27,7 +27,7 @@ variable "ssh_public_key" {
 variable "lxc_root_password" {
   type        = string
   description = "Root password for the LXC container"
-  sensitive   = true # 비밀번호는 터미널 출력에 노출되지 않도록 설정
+  sensitive   = true
 }
 
 variable "k8s_node_count_master" {
@@ -40,4 +40,10 @@ variable "k8s_node_count_worker" {
   type        = number
   description = "Number of worker nodes"
   default     = 2
+}
+
+variable "k3s_token" {
+  description = "The secret token for joining the k3s cluster."
+  type        = string
+  sensitive   = true
 }

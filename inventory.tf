@@ -6,6 +6,7 @@ resource "local_file" "ansible_inventory" {
   content  = templatefile("${path.module}/inventory.yml.tftpl", {
     masters = proxmox_lxc.k3s_masters
     workers = proxmox_lxc.k3s_workers
+    k3s_token = var.k3s_token
   })
 }
 

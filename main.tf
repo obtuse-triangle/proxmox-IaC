@@ -42,12 +42,11 @@ resource "proxmox_lxc" "k3s_masters" {
   memory = 4096
   unprivileged = false # k3s 설치를 위해 특권(privileged) 컨테이너로 생성
   start = true
-  # onboot = true # Ansible 이 시작
 
   tags="terraform"
 
   rootfs {
-    storage = "local" # 실제 스토리지 이름
+    storage = "local"
     size    = "8G"
   }
   network {
@@ -57,7 +56,6 @@ resource "proxmox_lxc" "k3s_masters" {
     gw     = "10.3.0.1"
   }
   
-  # ✅ [핵심] k3s가 컨테이너를 실행할 수 있도록 중첩(Nesting) 기능을 활성화합니다.
   features {
     nesting = true
   }
@@ -75,7 +73,6 @@ resource "proxmox_lxc" "k3s_workers" {
   memory = 2048
   unprivileged = false
   start = true
-  # onboot = true # Ansible 이 시작
 
   tags="terraform"
 
